@@ -9,7 +9,7 @@ class Decoder:
         self.__image = copy(image_wrapper)
         self.__pixel_provider = self.__image.next_pixel_getter()
 
-    def decode(self) -> str:
+    def decode(self, message_length: int=100) -> str:
         bits_generator = self.__bits_getter()
         char_codes = []
         try:
@@ -21,7 +21,7 @@ class Decoder:
                 char_codes.append(code_accumulator)
         except StopIteration:
             pass
-        return "".join(map(chr, char_codes[:20]))
+        return "".join(map(chr, char_codes[:message_length]))
 
     def __bits_getter(self) -> Iterator[int]:
         for pixel in self.__pixel_provider:
