@@ -40,4 +40,6 @@ class Encoder:
         return pixel
 
     def __get_number_bits(self, number: int) -> Iterator[int]:
+        if not 0 <= number <= 255:
+            raise AttributeError("Expecting code in range [0; 255]")
         return reversed([bool(number & (1 << shift)) for shift in range(8)])

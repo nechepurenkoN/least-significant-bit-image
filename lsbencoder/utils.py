@@ -40,6 +40,15 @@ class SteganoImageWrapper:
             name = name + ".png"
         self.__image.save(name, format="png")
 
+    def close(self):
+        self.__image.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
 
 class PixelsProvider:
     def __init__(self, image: Image):
