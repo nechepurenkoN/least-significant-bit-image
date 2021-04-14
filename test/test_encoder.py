@@ -1,19 +1,19 @@
 import unittest
 
-from lsbencoder.encoder import Encoder
-from lsbencoder.utils import SteganoImageWrapper, PixelWrapper
+from lsbencoder.encoder import Encoder, get_number_bits, encode_bit
+from lsbencoder.utils import LSBImageWrapper, PixelWrapper, NaturalOrderPixelsProvider
 
 
 class BaseEncoderTest(unittest.TestCase):
     def setUp(self):
-        self.image_wrapper = SteganoImageWrapper("test/resources/images/shrek.jpg")
+        self.image_wrapper = LSBImageWrapper("test/resources/images/shrek.jpg", NaturalOrderPixelsProvider())
 
     def tearDown(self):
         self.image_wrapper.close()
 
     def test_conversion_from_number_to_bits(self):
         encoder = Encoder(self.image_wrapper)
-        conversion_fn = encoder._Encoder__get_number_bits
+        conversion_fn = get_number_bits
         self.assertEqual([0, 0, 0, 0, 0, 0, 0, 0], list(conversion_fn(0)))
         self.assertEqual([0, 0, 0, 0, 0, 0, 0, 1], list(conversion_fn(1)))
         self.assertEqual([0, 0, 0, 1, 0, 0, 0, 0], list(conversion_fn(16)))
@@ -26,8 +26,8 @@ class BaseEncoderTest(unittest.TestCase):
 
     def test_bit_encoding_into_channel(self):
         encoder = Encoder(self.image_wrapper)
-        bit_encoder_fn = encoder._Encoder__encode_bit
-        pixel = PixelWrapper((10, 11, 12), lambda mock: mock)
+        bit_encoder_fn = encode_bit
+        pixel = PixelWrapper((10, 11, 12), (0,0))
         test_channel = 0
         bit_encode = 1
         self.assertEqual(11, bit_encoder_fn(bit_encode, pixel, test_channel).channel_value(

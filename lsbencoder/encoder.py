@@ -1,45 +1,44 @@
-from copy import copy
 from typing import Iterator, Tuple
 
 from lsbencoder.exceptions import EncoderTooLongMessageException
-from lsbencoder.utils import PixelWrapper, SteganoImageWrapper
+from lsbencoder.utils import PixelWrapper, LSBImageWrapper
+
+
+def get_number_bits(number: int) -> Iterator[int]:
+    return reversed([bool(number & (1 << shift)) for shift in range(8)])
+
+
+def encode_bit(bit: int, pixel: PixelWrapper, channel: int) -> PixelWrapper:
+    if pixel.channel_value(channel) & 1:
+        pixel.change_channel_value(channel, bit - 1)
+    else:
+        pixel.change_channel_value(channel, bit)
+    return pixel
 
 
 class Encoder:
-    def __init__(self, image_wrapper: SteganoImageWrapper):
-        self.__image = copy(image_wrapper)
-        self.__pixel_provider = self.__image.next_pixel_getter()
+    def __init__(self, image_wrapper: LSBImageWrapper):
+        self.__image = image_wrapper
+        self.__iterator = image_wrapper.pixel_iterator()
 
-    def encode(self, message: str, charset: str = "utf-8"):
-        message_byte_sequence = [x for x in message.encode(charset)]
+    def encode(self, message: str):
+        message_byte_sequence = list(message.encode("utf-32"))
         channel_index = 0
-        pixel = next(self.__pixel_provider)
+        pixel = next(self.__iterator)
         for symbol in message_byte_sequence:
-            bits = self.__get_number_bits(symbol)
+            bits = get_number_bits(symbol)
             for bit in bits:
                 pixel, channel_index = self.__make_encode_iteration(bit, pixel, channel_index)
         return self.__image
 
     def __make_encode_iteration(self, bit: int, pixel: PixelWrapper, channel_index: int) -> Tuple[PixelWrapper, int]:
-        pixel = self.__encode_bit(bit, pixel, channel_index)
+        pixel = encode_bit(bit, pixel, channel_index)
         channel_index = (channel_index + 1) % 3
         if not channel_index:
             try:
-                pixel.save()
-                pixel = next(self.__pixel_provider)
+                self.__image.put_pixel(pixel)
+                pixel = next(self.__iterator)
             except StopIteration:
                 raise EncoderTooLongMessageException(
                     "Specified message is too long to encode using provided image")
         return pixel, channel_index
-
-    def __encode_bit(self, bit: int, pixel: PixelWrapper, channel: int) -> PixelWrapper:
-        if pixel.channel_value(channel) & 1:
-            pixel.change_channel_value(channel, bit - 1)
-        else:
-            pixel.change_channel_value(channel, bit)
-        return pixel
-
-    def __get_number_bits(self, number: int) -> Iterator[int]:
-        if not 0 <= number <= 255:
-            raise AttributeError("Expecting code in range [0; 255]")
-        return reversed([bool(number & (1 << shift)) for shift in range(8)])

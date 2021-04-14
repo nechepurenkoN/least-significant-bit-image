@@ -1,16 +1,34 @@
 # LSB Encoder/Decoder
 
 ## Description
-Naive implementation of steganographic method of image encoding using the least significant bit.
+Naive implementation of a steganographic method of an image encoding using the least significant bit.
 
 ## Usage
 Firstly, initialize an image container
 ```python
 try:
-    with SteganoImageWrapper(source_image_path) as wrapper:
+    with LSBImageWrapper(source_image_path, NaturalOrderPixelsProvider()) as wrapper:
         ...
 except IOError as error:
     print(f"Error occurred: {error}")
+```
+
+The second argument of the container is an implementation of 
+```python
+class PixelsProvider:
+    @abc.abstractmethod
+    def get_iterator(self, pixels: PyAccess, width: int, height: int) -> Iterator[PixelWrapper]:
+        raise NotImplementedError
+```
+which specifies the order of pixels.
+
+It might be `NaturalOrderPixelsProvider` as in the example.
+```python
+class NaturalOrderPixelsProvider(PixelsProvider, ABC):
+    def get_iterator(self, pixels: PyAccess, width: int, height: int) -> Iterator[PixelWrapper]:
+        for x in range(height):
+            for y in range(width):
+                yield PixelWrapper(pixels[y, x], (y, x))
 ```
 
 To put `message` into `wrapper` and save, use next command sequence
@@ -22,7 +40,7 @@ encode method return value can be omitted.
 
 To pull `message` from `wrapper` with length `message_length` use
 ```python
-result = Decoder(wrapper).decode(message_length)
+result = Decoder(wrapper).decode()
 ```
 
 ## Example
@@ -33,7 +51,7 @@ import argparse
 
 from lsbencoder.decoder import Decoder
 from lsbencoder.encoder import Encoder
-from lsbencoder.utils import SteganoImageWrapper
+from lsbencoder.utils import LSBImageWrapper, NaturalOrderPixelsProvider
 
 
 def initialize_parser() -> argparse.ArgumentParser:
@@ -43,16 +61,15 @@ def initialize_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def encode_handler(wrapper: SteganoImageWrapper):
+def encode_handler(wrapper: LSBImageWrapper):
     message = input("Input message to encode: ")
     path_to_save = input("Input save path (ex. images/result.png): ")
     wrapper = Encoder(wrapper).encode(message)
     wrapper.save(path_to_save)
 
 
-def decode_handler(wrapper: SteganoImageWrapper) -> str:
-    message_length = int(input("Message length (100 is default): "))
-    result = Decoder(wrapper).decode(message_length)
+def decode_handler(wrapper: LSBImageWrapper) -> str:
+    result = Decoder(wrapper).decode()
     print(result)
     return result
 
@@ -62,7 +79,7 @@ if __name__ == '__main__':
     parser = initialize_parser()
     args = vars(parser.parse_args())
     try:
-        with SteganoImageWrapper(source_image_path) as wrapper:
+        with LSBImageWrapper(source_image_path, NaturalOrderPixelsProvider()) as wrapper:
             if args.get("e", False):
                 encode_handler(wrapper)
             elif args.get("d", False):
@@ -76,15 +93,14 @@ if __name__ == '__main__':
 Encoding run:
 ```
 Input path to image: resources/images/test.jpg
-Input message to encode: Some message to encode, yo!
-Input save path (ex. images/result.png): result.png
+Input message to encode: Hello, world! Здесь может быть любой текст, даже такой　孫子兵法 или такой 😍.
+Input save path (ex. images/result.png): resources/images/result.png
 ```
 
 Decoding run:
 ```
-Input path to image: result.png
-Message length (100 is default): 30
-Some message to encode, yo!U[R
+Input path to image: resources/images/result.png
+Hello, world! Здесь может быть любой текст, даже такой　孫子兵法 или такой 😍沛
 ```
 
 ## P.S.

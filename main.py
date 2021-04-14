@@ -2,7 +2,7 @@ import argparse
 
 from lsbencoder.decoder import Decoder
 from lsbencoder.encoder import Encoder
-from lsbencoder.utils import SteganoImageWrapper
+from lsbencoder.utils import LSBImageWrapper, NaturalOrderPixelsProvider
 
 
 def initialize_parser() -> argparse.ArgumentParser:
@@ -12,16 +12,15 @@ def initialize_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def encode_handler(wrapper: SteganoImageWrapper):
+def encode_handler(wrapper: LSBImageWrapper):
     message = input("Input message to encode: ")
     path_to_save = input("Input save path (ex. images/result.png): ")
     wrapper = Encoder(wrapper).encode(message)
     wrapper.save(path_to_save)
 
 
-def decode_handler(wrapper: SteganoImageWrapper) -> str:
-    message_length = int(input("Message length (100 is default): "))
-    result = Decoder(wrapper).decode(message_length)
+def decode_handler(wrapper: LSBImageWrapper) -> str:
+    result = Decoder(wrapper).decode()
     print(result)
     return result
 
@@ -31,7 +30,7 @@ if __name__ == '__main__':
     parser = initialize_parser()
     args = vars(parser.parse_args())
     try:
-        with SteganoImageWrapper(source_image_path) as wrapper:
+        with LSBImageWrapper(source_image_path, NaturalOrderPixelsProvider()) as wrapper:
             if args.get("e", False):
                 encode_handler(wrapper)
             elif args.get("d", False):
@@ -40,14 +39,3 @@ if __name__ == '__main__':
                 print("You must specify -e for encoding or -d for decoding")
     except IOError as error:
         print(f"Error occurred: {error}")
-"""
-Input path to image: resources/images/test.jpg
-Input message to encode: Some message to encode, yo!
-Input save path (ex. images/result.png): result.png
-"""
-
-"""
-Input path to image: result.png
-Message length (100 is default): 30
-Some message to encode, yo!U[R
-"""
