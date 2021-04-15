@@ -4,7 +4,7 @@ from lsbencoder.exceptions import EncoderTooLongMessageException
 from lsbencoder.utils import PixelWrapper, LSBImageWrapper
 
 
-def get_number_bits(number: int) -> Iterator[int]:
+def get_bits(number: int) -> Iterator[int]:
     return reversed([bool(number & (1 << shift)) for shift in range(8)])
 
 
@@ -25,8 +25,8 @@ class Encoder:
         message_byte_sequence = list(message.encode("utf-32"))
         channel_index = 0
         pixel = next(self.__iterator)
-        for symbol in message_byte_sequence:
-            bits = get_number_bits(symbol)
+        for byte in message_byte_sequence:
+            bits = get_bits(byte)
             for bit in bits:
                 pixel, channel_index = self.__make_encode_iteration(bit, pixel, channel_index)
         return self.__image

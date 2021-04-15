@@ -38,7 +38,7 @@ wrapper.save(path_to_save)
 ```
 encode method return value can be omitted.
 
-To pull `message` from `wrapper` with length `message_length` use
+To pull `message` from `wrapper` use
 ```python
 result = Decoder(wrapper).decode()
 ```
